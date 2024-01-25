@@ -13,18 +13,18 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 # ****************************** VNF Generator GLOBALS ******************************
 # File directory
-DIRECTORY = 'gym-examples/gym_examples/slice_request_db1'
-#DIRECTORY = 'data/scripts/DQN_models/Model1/gym_examples/slice_request_db1' #For pod
+DIRECTORY = 'gym-examples2/gym_examples/slice_request_db2'
+#DIRECTORY = 'data/scripts/DQN_models/Model1/gym_examples/slice_request_db2' #For pod
 
 # Number of VNF types dictionary
-# i.e. {key: value}, value = [BW] (modified to 5 types of [BW] only)
-VNF_TYPES = {0: [8], 1: [20], 2: [14], 3: [5], 4: [30], 5: [2]}
+# i.e. {key: value}, value = [CPU, RAM, Storage, BW] (modified to 5 types of [BW] only)
+VNF_TYPES = {0: [2, 4, 10, 8], 1: [4, 8, 32, 20], 2: [4, 8, 20, 14], 3: [2, 4, 8, 5], 4: [6, 12, 64, 30], 5: [1, 2, 5, 2]}
 # Arrival rates from VNF types dictionary
 ARRIVAL_RATE = {0: 3, 1: 2, 2: 3, 3: 4, 4: 2, 5: 3}
 # VNF life cycle from VNF types dictionary
 LIFE_CYCLE_RATE = {0: 10, 1: 8, 2: 5, 3: 3, 4: 9, 5: 10}
 # Num of vnf requests
-NUM_VNF_REQUESTS = 1000
+NUM_VNF_REQUESTS = 100
 
 # ****************************** VNF Generator FUNCTIONS ******************************
 
@@ -48,7 +48,7 @@ def generate_requests_per_type(key, num):
         vnf_request_life_time = np.random.poisson(LIFE_CYCLE_RATE[key]) 
         vnf_kill_at_time = vnf_request_at_time + vnf_request_life_time
 
-        final_vnf = [vnf_request_at_time, VNF_TYPES[key][0], vnf_kill_at_time]
+        final_vnf = [vnf_request_at_time, VNF_TYPES[key][0],VNF_TYPES[key][1],VNF_TYPES[key][2],VNF_TYPES[key][3], vnf_kill_at_time]
         #final_vnf = [vnf_request_at_time, VNF_TYPES[key][0], vnf_kill_at_time]
 
         # Round up decimals
@@ -99,29 +99,31 @@ def generate_vnf_list():
     vnfList = vnfList[:NUM_VNF_REQUESTS]
 
         # Dataframe
-    columns = ['ARRIVAL_REQUEST_@TIME', 'SLICE_BW_REQUEST', 'SLICE_KILL_@TIME']
+    columns = ['ARRIVAL_REQUEST_@TIME','SLICE_MEC_CPU_REQUEST', 'SLICE_MEC_RAM_REQUEST', 'SLICE_MEC_STORAGE_REQUEST', 'SLICE_MEC_BW_REQUEST', 'SLICE_KILL_@TIME']
     df = pd.DataFrame(data=vnfList, columns=columns, dtype=float)
 
         # Export df to  csv file
     df.to_csv(DIRECTORY, index=False, header=True)
 
 #------------------------------------Environment Class----------------------------------------------------
-class SliceCreationEnv1(gym.Env):
+class SliceCreationEnv2(gym.Env):
     metadata = {"render_modes": [], "render_fps": 4}
 
     def __init__(self, render_mode=None, size=5):
         # Define environment parameters
         
-        #Available resources (Order: MEC BW, )
-        self.resources = [1000]
+        #Available resources (Order: MEC_CPU (Cores), MEC_RAM (GB), MEC_STORAGE (GB), MEC_BW (Mbps))
+        #self.resources = [1000]
+        self.resources = {'MEC_CPU': 100, 'MEC_RAM': 512, 'MEC_STORAGE': 1000, 'MEC_BW': 1000}
         
         #Defined parameters per Slice. (Each component is a list of the correspondent slice parameters)
-        self.slices_param = [10, 20, 50]
+        #self.slices_param = [10, 20, 50]
+        self.slices_param = {1: [2, 4, 20, 10], 2: [4, 8, 20, 20], 3: [8, 16, 100, 50]}
 
-        self.slice_requests = pd.read_csv('/home/mario/Documents/DQN_Models/Model 1/gym-examples/gym_examples/slice_request_db1')  # Load VNF requests from the generated CSV
+        self.slice_requests = pd.read_csv('/home/mario/Documents/DQN_Models/Model 1/gym-examples2/gym_examples/slice_request_db2')  # Load VNF requests from the generated CSV
         #self.slice_requests = pd.read_csv('/data/scripts/DQN_models/Model1/gym_examples/slice_request_db1')    #For pod
         
-        self.observation_space = gym.spaces.Box(low=0, high=10000, shape=(2,), dtype=np.float32) #ovservation space composed by Requested resources (MEC BW) and available MEC resources.
+        self.observation_space = gym.spaces.Box(low=0, high=10000, shape=(5,), dtype=np.float32) #ovservation space composed by Requested resources (MEC BW) and available MEC resources.
         
         self.action_space = gym.spaces.Discrete(4)  # 0: Do Nothing, 1: Allocate Slice 1, 2: Allocate Slice 2, 3: Allocate Slice 3
 
@@ -150,17 +152,18 @@ class SliceCreationEnv1(gym.Env):
         self.reward = 0
         self.processed_requests = []
         self.reset_resources()
-        self.slice_requests = pd.read_csv('/home/mario/Documents/DQN_Models/Model 1/gym-examples/gym_examples/slice_request_db1')  # Load VNF requests from the generated CSV
+        self.slice_requests = pd.read_csv('/home/mario/Documents/DQN_Models/Model 1/gym-examples2/gym_examples/slice_request_db2')  # Load VNF requests from the generated CSV
         #self.slice_requests = pd.read_csv('/data/scripts/DQN_models/Model1/gym_examples/slice_request_db1')    #For pod
         self.next_request = self.read_request()
         self.update_slice_requests(self.next_request)
-        self.check_resources(self.next_request[1])
-        self.observation = np.array([self.next_request[1]] + [self.resources_flag], dtype=np.float32)
+        self.check_resources(self.next_request)
+        self.observation = np.array([self.next_request['SLICE_MEC_CPU_REQUEST']] + [self.next_request['SLICE_MEC_RAM_REQUEST']] 
+                                    + [self.next_request['SLICE_MEC_STORAGE_REQUEST']] + [self.next_request['SLICE_MEC_BW_REQUEST']] + [self.resources_flag], dtype=np.float32)
         #self.observation = np.array([self.next_request[1]] + deepcopy(self.resources), dtype=np.float32)
         self.info = {}
         self.first = True
         
-        print("\nReset: ", self.observation)
+        #print("\nReset: ", self.observation)
         
         return self.observation, self.info
 
@@ -203,7 +206,10 @@ class SliceCreationEnv1(gym.Env):
     
     def read_request(self):
         next_request = self.slice_requests.iloc[self.current_time_step - 1]
-        request_list =list([next_request['ARRIVAL_REQUEST_@TIME'], next_request['SLICE_BW_REQUEST'], next_request['SLICE_KILL_@TIME']])
+        #request_list =list([next_request['ARRIVAL_REQUEST_@TIME'], next_request['SLICE_BW_REQUEST'], next_request['SLICE_KILL_@TIME']])
+        request_list = {'ARRIVAL_REQUEST_@TIME': next_request['ARRIVAL_REQUEST_@TIME'], 'SLICE_MEC_CPU_REQUEST': next_request['SLICE_MEC_CPU_REQUEST'], 
+                        'SLICE_MEC_RAM_REQUEST': next_request['SLICE_MEC_RAM_REQUEST'], 'SLICE_MEC_STORAGE_REQUEST': next_request['SLICE_MEC_STORAGE_REQUEST'],
+                        'SLICE_MEC_BW_REQUEST': next_request['SLICE_MEC_BW_REQUEST'], 'SLICE_KILL_@TIME': next_request['SLICE_KILL_@TIME']}
         self.current_time_step += 1
         return request_list
         
@@ -212,26 +218,31 @@ class SliceCreationEnv1(gym.Env):
         if len(self.processed_requests) != 0:
             for i in self.processed_requests:
                 #i[2] < request[0]
-                if len(i)== 4 and i[2] <= request[0]:
+                if len(i)== 7 and i['SLICE_KILL_@TIME'] <= request['ARRIVAL_REQUEST_@TIME']:
                     self.deallocate_slice(i)
                     self.processed_requests.remove(i)
         self.processed_requests.append(request)
         
-    def check_resources(self, slice_bw_request):
+    def check_resources(self, request):
         # Logic to check if there are available resources to allocate the VNF request
         # Return True if resources are available, False otherwise
-        if self.resources[0] >= int(slice_bw_request):
+        if self.resources['MEC_CPU'] >= request['SLICE_MEC_CPU_REQUEST'] and self.resources['MEC_RAM'] >= request['SLICE_MEC_RAM_REQUEST'] and self.resources['MEC_STORAGE'] >= request['SLICE_MEC_STORAGE_REQUEST'] and self.resources['MEC_BW'] >= request['SLICE_MEC_BW_REQUEST']:
             self.resources_flag = 1
         else: self.resources_flag = 0
     
-    def allocate_slice(self, slice_bw_request):
+    def allocate_slice(self, request):
         # Allocate the resources requested by the current VNF
-        self.resources[0] -= int(slice_bw_request)
-        # Define Slice ID
+        self.resources['MEC_CPU'] -= request['SLICE_MEC_CPU_REQUEST']
+        self.resources['MEC_RAM'] -= request['SLICE_MEC_RAM_REQUEST']
+        self.resources['MEC_STORAGE'] -= request['SLICE_MEC_STORAGE_REQUEST']
+        self.resources['MEC_BW'] -= request['SLICE_MEC_BW_REQUEST']
     
     def deallocate_slice(self, request):
         # Function to deallocate resources of killed requests
-        self.resources[0] = self.resources[0] + request[1]
+        self.resources['MEC_CPU'] += request['SLICE_MEC_CPU_REQUEST']
+        self.resources['MEC_RAM'] += request['SLICE_MEC_RAM_REQUEST']
+        self.resources['MEC_STORAGE'] += request['SLICE_MEC_STORAGE_REQUEST']
+        self.resources['MEC_BW'] += request['SLICE_MEC_BW_REQUEST']
         
     def create_slice (self, request):
         # Function to create the slice for a specific request
@@ -247,7 +258,11 @@ class SliceCreationEnv1(gym.Env):
         return slice_id
 
     def reset_resources(self):
-        self.resources = [1000]
+        #self.resoruces = {'MEC_CPU': 100, 'MEC_RAM': 512, 'MEC_STORAGE': 1000, 'MEC_BW': 1000}
+        self.resources['MEC_CPU'] = 100
+        self.resources['MEC_RAM'] = 512
+        self.resources['MEC_STORAGE'] = 1000
+        self.resources['MEC_BW'] = 1000
     
     def evaluate_action(self, action, slice_id, reward_value, terminated):
         if action == 1 and slice_id == 1:

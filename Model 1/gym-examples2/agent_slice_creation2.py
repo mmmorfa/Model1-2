@@ -4,13 +4,13 @@ import tensorflow as tf
 
 from stable_baselines3.common.logger import configure
 
-from gym_examples.envs.slice_creation_env1 import SliceCreationEnv1
+from gym_examples.envs.slice_creation_env2 import SliceCreationEnv2
 
 from os.path import exists
 
 from gymnasium.wrappers import TimeLimit
 
-env = SliceCreationEnv1()
+env = SliceCreationEnv2()
 env = TimeLimit(env, max_episode_steps=99)
 
 log_path = "/home/mario/Documents/DQN_Models/Model 1/gym-examples/logs/"
