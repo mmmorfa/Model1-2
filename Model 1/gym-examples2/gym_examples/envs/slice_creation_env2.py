@@ -13,7 +13,7 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 # ****************************** VNF Generator GLOBALS ******************************
 # File directory
-DIRECTORY = 'gym-examples2/gym_examples/slice_request_db2'
+DIRECTORY = '/home/mario/Documents/DQN_Models/Model 1/gym-examples2/gym_examples/slice_request_db2'
 #DIRECTORY = 'data/scripts/DQN_models/Model1/gym_examples/slice_request_db2' #For pod
 
 # Number of VNF types dictionary
@@ -114,7 +114,7 @@ class SliceCreationEnv2(gym.Env):
         
         #Available resources (Order: MEC_CPU (Cores), MEC_RAM (GB), MEC_STORAGE (GB), MEC_BW (Mbps))
         #self.resources = [1000]
-        self.resources = {'MEC_CPU': 100, 'MEC_RAM': 512, 'MEC_STORAGE': 1000, 'MEC_BW': 1000}
+        self.resources = {'MEC_CPU': 40, 'MEC_RAM': 64, 'MEC_STORAGE': 200, 'MEC_BW': 60}
         
         #Defined parameters per Slice. (Each component is a list of the correspondent slice parameters)
         #self.slices_param = [10, 20, 50]
@@ -163,7 +163,7 @@ class SliceCreationEnv2(gym.Env):
         self.info = {}
         self.first = True
         
-        #print("\nReset: ", self.observation)
+        print("\nReset: ", self.observation)
         
         return self.observation, self.info
 
@@ -188,9 +188,11 @@ class SliceCreationEnv2(gym.Env):
 
         self.update_slice_requests(self.next_request)
 
-        self.check_resources(self.next_request[1])
+        self.check_resources(self.next_request)
     
-        self.observation = np.array([self.next_request[1]] + [self.resources_flag], dtype=np.float32)
+        #self.observation = np.array([self.next_request[1]] + [self.resources_flag], dtype=np.float32)
+        self.observation = np.array([self.next_request['SLICE_MEC_CPU_REQUEST']] + [self.next_request['SLICE_MEC_RAM_REQUEST']] 
+                                    + [self.next_request['SLICE_MEC_STORAGE_REQUEST']] + [self.next_request['SLICE_MEC_BW_REQUEST']] + [self.resources_flag], dtype=np.float32)
         
         #done = False
         
@@ -247,29 +249,34 @@ class SliceCreationEnv2(gym.Env):
     def create_slice (self, request):
         # Function to create the slice for a specific request
         # This function inserts the defined slice to the request in the processed requests list
+        # self.slices_param = {1: [2, 4, 20, 10], 2: [4, 8, 20, 20], 3: [8, 16, 100, 50]}
+        slice1 = self.slices_param[1]
+        slice2 = self.slices_param[2]
+        slice3 = self.slices_param[3]
         
-        resources = request[1]
-        if resources <= self.slices_param[0]:
+        if request['SLICE_MEC_CPU_REQUEST'] <= slice1[0] and request['SLICE_MEC_RAM_REQUEST'] <= slice1[1] and request['SLICE_MEC_STORAGE_REQUEST'] <= slice1[2] and request['SLICE_MEC_BW_REQUEST'] <= slice1[3]:
             slice_id = 1
-        elif resources <= self.slices_param[1]:
+        elif request['SLICE_MEC_CPU_REQUEST'] <= slice2[0] and request['SLICE_MEC_RAM_REQUEST'] <= slice2[1] and request['SLICE_MEC_STORAGE_REQUEST'] <= slice2[2] and request['SLICE_MEC_BW_REQUEST'] <= slice2[3]:
             slice_id = 2
-        elif resources <= self.slices_param[2]:
+        elif request['SLICE_MEC_CPU_REQUEST'] <= slice3[0] and request['SLICE_MEC_RAM_REQUEST'] <= slice3[1] and request['SLICE_MEC_STORAGE_REQUEST'] <= slice3[2] and request['SLICE_MEC_BW_REQUEST'] <= slice3[3]:
             slice_id = 3
         return slice_id
 
     def reset_resources(self):
         #self.resoruces = {'MEC_CPU': 100, 'MEC_RAM': 512, 'MEC_STORAGE': 1000, 'MEC_BW': 1000}
-        self.resources['MEC_CPU'] = 100
-        self.resources['MEC_RAM'] = 512
-        self.resources['MEC_STORAGE'] = 1000
-        self.resources['MEC_BW'] = 1000
+        #self.resources = {'MEC_CPU': 40, 'MEC_RAM': 64, 'MEC_STORAGE': 200, 'MEC_BW': 60}
+
+        self.resources['MEC_CPU'] = 40
+        self.resources['MEC_RAM'] = 64
+        self.resources['MEC_STORAGE'] = 200
+        self.resources['MEC_BW'] = 60
     
     def evaluate_action(self, action, slice_id, reward_value, terminated):
         if action == 1 and slice_id == 1:
-            self.check_resources(self.next_request[1])
+            self.check_resources(self.next_request)
             if self.resources_flag == 1:
-                self.allocate_slice(self.next_request[1])
-                self.processed_requests[len(self.processed_requests) - 1].append(slice_id)
+                self.allocate_slice(self.next_request)
+                self.processed_requests[len(self.processed_requests) - 1]['SliceID'] = slice_id
                 self.reward += reward_value   
                 self.next_request = self.read_request()
             else: 
@@ -281,10 +288,10 @@ class SliceCreationEnv2(gym.Env):
             self.reward = 0
             
         if action == 2 and slice_id == 2:
-            self.check_resources(self.next_request[1])
+            self.check_resources(self.next_request)
             if self.resources_flag == 1:
-                self.allocate_slice(self.next_request[1])
-                self.processed_requests[len(self.processed_requests) - 1].append(slice_id)
+                self.allocate_slice(self.next_request)
+                self.processed_requests[len(self.processed_requests) - 1]['SliceID'] = slice_id
                 self.reward += reward_value   
                 self.next_request = self.read_request()
             else: 
@@ -296,10 +303,10 @@ class SliceCreationEnv2(gym.Env):
             self.reward = 0
             
         if action == 3 and slice_id == 3:
-            self.check_resources(self.next_request[1])
+            self.check_resources(self.next_request)
             if self.resources_flag == 1:
-                self.allocate_slice(self.next_request[1])
-                self.processed_requests[len(self.processed_requests) - 1].append(slice_id)
+                self.allocate_slice(self.next_request)
+                self.processed_requests[len(self.processed_requests) - 1]['SliceID'] = slice_id
                 self.reward += reward_value   
                 self.next_request = self.read_request()
             else: 
@@ -311,7 +318,7 @@ class SliceCreationEnv2(gym.Env):
             self.reward = 0
             
         if action == 0:
-            self.check_resources(self.next_request[1])
+            self.check_resources(self.next_request)
             if self.resources_flag == 0:
                 self.reward += reward_value
                 self.next_request = self.read_request()
@@ -330,5 +337,5 @@ class SliceCreationEnv2(gym.Env):
             pygame.display.quit()
             pygame.quit()
             
-#a = SliceCreationEnv1()
+#a = SliceCreationEnv2()
 #check_env(a)

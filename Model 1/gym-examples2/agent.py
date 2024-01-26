@@ -7,13 +7,13 @@ from gym_examples.envs.slice_creation_env2 import SliceCreationEnv2
 env = SliceCreationEnv2()
 
 
-#model = DQN.load("gym-examples/dqn_slices1", env)
-model = DQN.load("/home/mario/Documents/DQN_Models/Model 1/gym-examples/dqn_slices1(Arch:16; learn:1e-3; starts:250k; fraction:0_5; train: 1.5M)", env)
+model = DQN.load("dqn_slices1.zip", env)
+#model = DQN.load("/home/mario/Documents/DQN_Models/Model 1/gym-examples/dqn_slices1(Arch:16; learn:1e-3; starts:250k; fraction:0_5; train: 1.5M)", env)
 
 obs, info = env.reset()
 
 cont = 0
-while cont<999:
+while cont<99:
     action, _states = model.predict(obs, deterministic=True)
     obs, reward, terminated, truncated, info = env.step(action)
     print('Action: ', action,'Observation: ', obs, ' | Reward: ', reward, ' | Terminated: ', terminated)
