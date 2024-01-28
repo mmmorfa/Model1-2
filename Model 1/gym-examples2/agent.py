@@ -13,7 +13,7 @@ model = DQN.load("dqn_slices1.zip", env)
 obs, info = env.reset()
 
 cont = 0
-while cont<99:
+while cont<999:
     action, _states = model.predict(obs, deterministic=True)
     obs, reward, terminated, truncated, info = env.step(action)
     print('Action: ', action,'Observation: ', obs, ' | Reward: ', reward, ' | Terminated: ', terminated)

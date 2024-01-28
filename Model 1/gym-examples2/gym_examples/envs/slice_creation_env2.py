@@ -24,7 +24,7 @@ ARRIVAL_RATE = {0: 3, 1: 2, 2: 3, 3: 4, 4: 2, 5: 3}
 # VNF life cycle from VNF types dictionary
 LIFE_CYCLE_RATE = {0: 10, 1: 8, 2: 5, 3: 3, 4: 9, 5: 10}
 # Num of vnf requests
-NUM_VNF_REQUESTS = 100
+NUM_VNF_REQUESTS = 1000
 
 # ****************************** VNF Generator FUNCTIONS ******************************
 
@@ -114,7 +114,7 @@ class SliceCreationEnv2(gym.Env):
         
         #Available resources (Order: MEC_CPU (Cores), MEC_RAM (GB), MEC_STORAGE (GB), MEC_BW (Mbps))
         #self.resources = [1000]
-        self.resources = {'MEC_CPU': 40, 'MEC_RAM': 64, 'MEC_STORAGE': 200, 'MEC_BW': 60}
+        self.resources = {'MEC_CPU': 100, 'MEC_RAM': 512, 'MEC_STORAGE': 1000, 'MEC_BW': 1000}
         
         #Defined parameters per Slice. (Each component is a list of the correspondent slice parameters)
         #self.slices_param = [10, 20, 50]
@@ -266,10 +266,10 @@ class SliceCreationEnv2(gym.Env):
         #self.resoruces = {'MEC_CPU': 100, 'MEC_RAM': 512, 'MEC_STORAGE': 1000, 'MEC_BW': 1000}
         #self.resources = {'MEC_CPU': 40, 'MEC_RAM': 64, 'MEC_STORAGE': 200, 'MEC_BW': 60}
 
-        self.resources['MEC_CPU'] = 40
-        self.resources['MEC_RAM'] = 64
-        self.resources['MEC_STORAGE'] = 200
-        self.resources['MEC_BW'] = 60
+        self.resources['MEC_CPU'] = 100
+        self.resources['MEC_RAM'] = 512
+        self.resources['MEC_STORAGE'] = 1000
+        self.resources['MEC_BW'] = 1000
     
     def evaluate_action(self, action, slice_id, reward_value, terminated):
         if action == 1 and slice_id == 1:
