@@ -24,7 +24,7 @@ ARRIVAL_RATE = {0: 3, 1: 2, 2: 3, 3: 4, 4: 2, 5: 3}
 # VNF life cycle from VNF types dictionary
 LIFE_CYCLE_RATE = {0: 10, 1: 8, 2: 5, 3: 3, 4: 9, 5: 10}
 # Num of vnf requests
-NUM_VNF_REQUESTS = 1000
+NUM_VNF_REQUESTS = 100
 
 # ****************************** VNF Generator FUNCTIONS ******************************
 
@@ -114,7 +114,9 @@ class SliceCreationEnv2(gym.Env):
         
         #Available resources (Order: MEC_CPU (Cores), MEC_RAM (GB), MEC_STORAGE (GB), MEC_BW (Mbps))
         #self.resources = [1000]
-        self.resources = {'MEC_CPU': 100, 'MEC_RAM': 512, 'MEC_STORAGE': 1000, 'MEC_BW': 1000}
+        self.resources_1 = {'MEC_CPU': 20, 'MEC_RAM': 128, 'MEC_STORAGE': 100, 'MEC_BW': 50}
+        self.resources_2 = {'MEC_CPU': 50, 'MEC_RAM': 256, 'MEC_STORAGE': 250, 'MEC_BW': 100}
+        self.resources_3 = {'MEC_CPU': 50, 'MEC_RAM': 512, 'MEC_STORAGE': 500, 'MEC_BW': 500}
         
         #Defined parameters per Slice. (Each component is a list of the correspondent slice parameters)
         #self.slices_param = [10, 20, 50]
@@ -155,6 +157,7 @@ class SliceCreationEnv2(gym.Env):
         self.slice_requests = pd.read_csv('/home/mario/Documents/DQN_Models/Model 1/gym-examples2/gym_examples/slice_request_db2')  # Load VNF requests from the generated CSV
         #self.slice_requests = pd.read_csv('/data/scripts/DQN_models/Model1/gym_examples/slice_request_db1')    #For pod
         self.next_request = self.read_request()
+        slice_id = self.create_slice(self.next_request)
         self.update_slice_requests(self.next_request)
         self.check_resources(self.next_request)
         self.observation = np.array([self.next_request['SLICE_MEC_CPU_REQUEST']] + [self.next_request['SLICE_MEC_RAM_REQUEST']] 
@@ -221,30 +224,67 @@ class SliceCreationEnv2(gym.Env):
             for i in self.processed_requests:
                 #i[2] < request[0]
                 if len(i)== 7 and i['SLICE_KILL_@TIME'] <= request['ARRIVAL_REQUEST_@TIME']:
-                    self.deallocate_slice(i)
+                    slice_id = self.create_slice(i)
+                    self.deallocate_slice(i, slice_id)
                     self.processed_requests.remove(i)
         self.processed_requests.append(request)
         
     def check_resources(self, request):
         # Logic to check if there are available resources to allocate the VNF request
         # Return True if resources are available, False otherwise
-        if self.resources['MEC_CPU'] >= request['SLICE_MEC_CPU_REQUEST'] and self.resources['MEC_RAM'] >= request['SLICE_MEC_RAM_REQUEST'] and self.resources['MEC_STORAGE'] >= request['SLICE_MEC_STORAGE_REQUEST'] and self.resources['MEC_BW'] >= request['SLICE_MEC_BW_REQUEST']:
-            self.resources_flag = 1
-        else: self.resources_flag = 0
+
+        slice_id = self.create_slice(request)
+
+        if slice_id == 1:
+            if self.resources_1['MEC_CPU'] >= request['SLICE_MEC_CPU_REQUEST'] and self.resources_1['MEC_RAM'] >= request['SLICE_MEC_RAM_REQUEST'] and self.resources_1['MEC_STORAGE'] >= request['SLICE_MEC_STORAGE_REQUEST'] and self.resources_1['MEC_BW'] >= request['SLICE_MEC_BW_REQUEST']:
+                self.resources_flag = 1
+            else: self.resources_flag = 0
+        elif slice_id == 2:
+            if self.resources_2['MEC_CPU'] >= request['SLICE_MEC_CPU_REQUEST'] and self.resources_2['MEC_RAM'] >= request['SLICE_MEC_RAM_REQUEST'] and self.resources_2['MEC_STORAGE'] >= request['SLICE_MEC_STORAGE_REQUEST'] and self.resources_2['MEC_BW'] >= request['SLICE_MEC_BW_REQUEST']:
+                self.resources_flag = 1
+            else: self.resources_flag = 0
+        elif slice_id == 3:
+            if self.resources_3['MEC_CPU'] >= request['SLICE_MEC_CPU_REQUEST'] and self.resources_3['MEC_RAM'] >= request['SLICE_MEC_RAM_REQUEST'] and self.resources_3['MEC_STORAGE'] >= request['SLICE_MEC_STORAGE_REQUEST'] and self.resources_3['MEC_BW'] >= request['SLICE_MEC_BW_REQUEST']:
+                self.resources_flag = 1
+            else: self.resources_flag = 0
     
-    def allocate_slice(self, request):
+    def allocate_slice(self, request, slice_id):
         # Allocate the resources requested by the current VNF
-        self.resources['MEC_CPU'] -= request['SLICE_MEC_CPU_REQUEST']
-        self.resources['MEC_RAM'] -= request['SLICE_MEC_RAM_REQUEST']
-        self.resources['MEC_STORAGE'] -= request['SLICE_MEC_STORAGE_REQUEST']
-        self.resources['MEC_BW'] -= request['SLICE_MEC_BW_REQUEST']
+
+        if slice_id == 1:
+            self.resources_1['MEC_CPU'] -= request['SLICE_MEC_CPU_REQUEST']
+            self.resources_1['MEC_RAM'] -= request['SLICE_MEC_RAM_REQUEST']
+            self.resources_1['MEC_STORAGE'] -= request['SLICE_MEC_STORAGE_REQUEST']
+            self.resources_1['MEC_BW'] -= request['SLICE_MEC_BW_REQUEST']
+        elif slice_id == 2:
+            self.resources_2['MEC_CPU'] -= request['SLICE_MEC_CPU_REQUEST']
+            self.resources_2['MEC_RAM'] -= request['SLICE_MEC_RAM_REQUEST']
+            self.resources_2['MEC_STORAGE'] -= request['SLICE_MEC_STORAGE_REQUEST']
+            self.resources_2['MEC_BW'] -= request['SLICE_MEC_BW_REQUEST']
+        elif slice_id == 3:
+            self.resources_3['MEC_CPU'] -= request['SLICE_MEC_CPU_REQUEST']
+            self.resources_3['MEC_RAM'] -= request['SLICE_MEC_RAM_REQUEST']
+            self.resources_3['MEC_STORAGE'] -= request['SLICE_MEC_STORAGE_REQUEST']
+            self.resources_3['MEC_BW'] -= request['SLICE_MEC_BW_REQUEST']
     
-    def deallocate_slice(self, request):
+    def deallocate_slice(self, request, slice_id):
         # Function to deallocate resources of killed requests
-        self.resources['MEC_CPU'] += request['SLICE_MEC_CPU_REQUEST']
-        self.resources['MEC_RAM'] += request['SLICE_MEC_RAM_REQUEST']
-        self.resources['MEC_STORAGE'] += request['SLICE_MEC_STORAGE_REQUEST']
-        self.resources['MEC_BW'] += request['SLICE_MEC_BW_REQUEST']
+
+        if slice_id == 1:
+            self.resources_1['MEC_CPU'] += request['SLICE_MEC_CPU_REQUEST']
+            self.resources_1['MEC_RAM'] += request['SLICE_MEC_RAM_REQUEST']
+            self.resources_1['MEC_STORAGE'] += request['SLICE_MEC_STORAGE_REQUEST']
+            self.resources_1['MEC_BW'] += request['SLICE_MEC_BW_REQUEST']
+        elif slice_id == 2:
+            self.resources_2['MEC_CPU'] += request['SLICE_MEC_CPU_REQUEST']
+            self.resources_2['MEC_RAM'] += request['SLICE_MEC_RAM_REQUEST']
+            self.resources_2['MEC_STORAGE'] += request['SLICE_MEC_STORAGE_REQUEST']
+            self.resources_2['MEC_BW'] += request['SLICE_MEC_BW_REQUEST']
+        elif slice_id == 3:
+            self.resources_3['MEC_CPU'] += request['SLICE_MEC_CPU_REQUEST']
+            self.resources_3['MEC_RAM'] += request['SLICE_MEC_RAM_REQUEST']
+            self.resources_3['MEC_STORAGE'] += request['SLICE_MEC_STORAGE_REQUEST']
+            self.resources_3['MEC_BW'] += request['SLICE_MEC_BW_REQUEST']
         
     def create_slice (self, request):
         # Function to create the slice for a specific request
@@ -266,16 +306,30 @@ class SliceCreationEnv2(gym.Env):
         #self.resoruces = {'MEC_CPU': 100, 'MEC_RAM': 512, 'MEC_STORAGE': 1000, 'MEC_BW': 1000}
         #self.resources = {'MEC_CPU': 40, 'MEC_RAM': 64, 'MEC_STORAGE': 200, 'MEC_BW': 60}
 
-        self.resources['MEC_CPU'] = 100
-        self.resources['MEC_RAM'] = 512
-        self.resources['MEC_STORAGE'] = 1000
-        self.resources['MEC_BW'] = 1000
+        #self.resources_1 = {'MEC_CPU': 20, 'MEC_RAM': 128, 'MEC_STORAGE': 100, 'MEC_BW': 50}
+        #self.resources_2 = {'MEC_CPU': 50, 'MEC_RAM': 256, 'MEC_STORAGE': 250, 'MEC_BW': 100}
+        #self.resources_3 = {'MEC_CPU': 50, 'MEC_RAM': 512, 'MEC_STORAGE': 500, 'MEC_BW': 500}
+
+        self.resources_1['MEC_CPU'] = 20
+        self.resources_1['MEC_RAM'] = 128
+        self.resources_1['MEC_STORAGE'] = 100
+        self.resources_1['MEC_BW'] = 50
+
+        self.resources_2['MEC_CPU'] = 50
+        self.resources_2['MEC_RAM'] = 256
+        self.resources_2['MEC_STORAGE'] = 250
+        self.resources_2['MEC_BW'] = 100
+
+        self.resources_3['MEC_CPU'] = 50
+        self.resources_3['MEC_RAM'] = 512
+        self.resources_3['MEC_STORAGE'] = 500
+        self.resources_3['MEC_BW'] = 500
     
     def evaluate_action(self, action, slice_id, reward_value, terminated):
         if action == 1 and slice_id == 1:
             self.check_resources(self.next_request)
             if self.resources_flag == 1:
-                self.allocate_slice(self.next_request)
+                self.allocate_slice(self.next_request,slice_id)
                 self.processed_requests[len(self.processed_requests) - 1]['SliceID'] = slice_id
                 self.reward += reward_value   
                 self.next_request = self.read_request()
@@ -290,7 +344,7 @@ class SliceCreationEnv2(gym.Env):
         if action == 2 and slice_id == 2:
             self.check_resources(self.next_request)
             if self.resources_flag == 1:
-                self.allocate_slice(self.next_request)
+                self.allocate_slice(self.next_request, slice_id)
                 self.processed_requests[len(self.processed_requests) - 1]['SliceID'] = slice_id
                 self.reward += reward_value   
                 self.next_request = self.read_request()
@@ -305,7 +359,7 @@ class SliceCreationEnv2(gym.Env):
         if action == 3 and slice_id == 3:
             self.check_resources(self.next_request)
             if self.resources_flag == 1:
-                self.allocate_slice(self.next_request)
+                self.allocate_slice(self.next_request, slice_id)
                 self.processed_requests[len(self.processed_requests) - 1]['SliceID'] = slice_id
                 self.reward += reward_value   
                 self.next_request = self.read_request()

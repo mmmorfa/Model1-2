@@ -1,7 +1,11 @@
-a = [{0: [1,2,3], 1: [4,5,6]}, {2: [7,8,9], 3: [1,2,3]}]
+import numpy as np
 
-print (a)
+matrix = np.array([[1, 2, 3],
+                   [4, 5, 6],
+                   [7, 8, 9]])
 
-for i in a:
-    print (i)
-    print (len(i))
+# Value to find
+value_to_find = 5
+
+# Find indices where value equals value_to_find
+indices = np.where(matrix == value_to_find)
